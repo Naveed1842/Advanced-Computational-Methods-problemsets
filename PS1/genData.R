@@ -1,4 +1,5 @@
 library(ggplot2)
+library(MASS)
 # create function that generates data Chinese fluency and salary data for Chinese nationals and non-Chinese.
 sigmaXY <- function(rho, sdX, sdY) {
     covTerm <- rho * sdX * sdY
@@ -22,10 +23,17 @@ genData <- function(noCat1=100, noCat2=100, muCat1=c(5,5), sdCat1=c(1,1), rhoCat
     cat1 <- genBVN(noCat1, seed, muCat1, sigmaCat1)
     
     # generate category 2 data
-    cat2_X <- runif(noCat2, min=minCat2[1], max=maxCat2[1])
-    cat2_Z <- runif(noCat2, min=minCat2[2], max=maxCat2[2])
-    cat2_U <- rbinom(noCat2, 1, rhoCat2)
-    cat2_Y <- cat2_X * cat2_U + cat2_Z * (1 - cat2_U)
+    #cat2_X <- runif(noCat2, min=minCat2[1], max=maxCat2[1])
+    #cat2_Z <- runif(noCat2, min=minCat2[2], max=maxCat2[2])
+    #cat2_U <- rbinom(noCat2, 1, rhoCat2)
+    #cat2_Y <- cat2_X * cat2_U + cat2_Z * (1 - cat2_U)
+    #cat2 <- cbind(cat2_X, cat2_Y)
+    
+    # second method of generating cat 2 data
+    S <- matrix(c(1, 0.9, 0.9, 1), nrow = 2)
+    cat2_Z <- mvrnorm(noCat2, mu = c(5,5), Sigma = S)
+    cat2_X <- cat2_Z[,1]
+    cat2_Y <- pnorm(cat2_Z[,2])
     cat2 <- cbind(cat2_X, cat2_Y)
     
     # combine data and add binary outcome and labels

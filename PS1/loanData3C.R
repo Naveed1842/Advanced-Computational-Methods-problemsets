@@ -70,8 +70,6 @@ y_23 <- -(weights[1,3]-weights[1,2])/(weights[3,3]-weights[3,2]) -
 y_31 <- -(weights[1,1]-weights[1,3])/(weights[3,1]-weights[3,3]) - 
     (weights[2,1] - weights[2,3])/(weights[3,1]-weights[3,3]) * x
 
-# truncating lines
-
 boundaryDf_12 <- data.frame(PIratio = x, solvency = y_12, 
                             deny = rep("Boundary_12", length(x)))
 boundaryDf_23 <- data.frame(PIratio = x, solvency = y_23, 
@@ -79,7 +77,7 @@ boundaryDf_23 <- data.frame(PIratio = x, solvency = y_23,
 boundaryDf_31 <- data.frame(PIratio = x, solvency = y_31, 
                             deny = rep("Boundary_31", length(x)))
 
-# plot data - NEED TO ADD DECISION BOUNDARIES
+# plot data
 ggplot(data = loanDf, aes(x = solvency, y = PIratio, 
                           colour = deny, fill = deny)) +
     geom_point() +
@@ -94,7 +92,7 @@ ggplot(data = loanDf, aes(x = solvency, y = PIratio,
                                   "Undecided" = "green", "Boundary_12" = "grey",
                                   "Boundary_23" = "orange", 
                                   "Boundary_31" = "black"))
-ggsave("discFunction3C.pdf", scale = 1, width = 4, height = 4)
+ggsave("discFunction3C.pdf", scale = 1, width = 6, height = 4)
 
 # compute predictions
 predictions <- X %*% weights
@@ -108,10 +106,11 @@ for (i in 1:(nrow(loanDf))) {
     else predictedLabels[i] <- "Undecided"
 }
 
-loanDf <- cbind(loanDf, weights, predictedLabels)
+# combine predictions and final class decision to data frame and return
+loanDf <- cbind(loanDf, predictions, predictedLabels)
+loanDf
 
 # save dataset with predictions
 write.csv(loanDf, file = "predictions.csv")
 
-# confusion matrix - HOW DO I DO THIS WITH 3 CATEGORIES???
 

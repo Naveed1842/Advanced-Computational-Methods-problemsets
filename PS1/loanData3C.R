@@ -77,6 +77,9 @@ boundaryDf_23 <- data.frame(PIratio = x, solvency = y_23,
 boundaryDf_31 <- data.frame(PIratio = x, solvency = y_31, 
                             deny = rep("Boundary_31", length(x)))
 
+# truncate lines
+
+
 # plot data
 ggplot(data = loanDf, aes(x = solvency, y = PIratio, 
                           colour = deny, fill = deny)) +

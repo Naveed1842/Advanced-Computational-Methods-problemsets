@@ -2,7 +2,6 @@
 if (!require("ggplot2")) install.packages("ggplot2"); library(ggplot2)
 if (!require("mvtnorm")) install.packages("mtvnorm"); library(mvtnorm)
 
-#choosing colours ??
 
 shinyServer(function(input, output, session) {
   
@@ -36,39 +35,32 @@ shinyServer(function(input, output, session) {
     
     # calculate all variables
     data <- reactive({
-        loanDf<-loanData(50,50, c(input$muXA,input$muYA), c(input$muXD, input$muYD), c(input$sdXA, input$sdYA), c(input$sdXD,input$sdYD), -0.1, 0.6, 1221) 
-        # optimizing
+        loanDf <- loanData(50,50, c(input$muXA,input$muYA), 
+                           c(input$muXD, input$muYD), c(input$sdXA, input$sdYA), 
+                           c(input$sdXD,input$sdYD), -0.1, 0.6, 1221) 
       
         datafit <- lm(target ~ solvency + PIratio + 1, data=loanDf)
       
-        #calculating the boundaries 
-        weights <- coef(datafit)[c("solvency", "PIratio")]
-        bias <- coef(datafit)[1]
-        intercept <- (-bias + 0.5)/weights["PIratio"]
-        slope <- -(weights["solvency"]/weights["PIratio"])
-        # when plotting, a more general solution is to use geom_line()
-        x <- seq(min(loanDf["PIratio"]), max(loanDf["PIratio"]), 
-                 length.out = nrow(loanDf))
-        y <- -(weights["PIratio"]/weights["solvency"])*x + 
-            (0.5-bias)/weights["solvency"]
-      
-        # careful, colnames have to match!
-        boundaryDf <- data.frame(PIratio=x, solvency=y, 
-                               deny=rep("Boundary", length(x)))
-        # compute misclassification
+        # calculating the boundaries 
+        weights     <- coef(datafit)[c("solvency", "PIratio")]
+        bias        <- coef(datafit)[1]
+        intercept   <- (-bias + 0.5)/weights["PIratio"]
+        slope       <- -(weights["solvency"]/weights["PIratio"])
+        x           <- seq(min(loanDf["PIratio"]), max(loanDf["PIratio"]), length.out = nrow(loanDf))
+        y           <- -( weights["PIratio"]/weights["solvency"] ) * x + (0.5-bias)/weights["solvency"]
+        boundaryDf  <- data.frame(PIratio=x, solvency=y, deny=rep("Boundary", length(x)))
+        
+        # predicted labels
         predictedLabels <- ifelse(predict(datafit) < 0.5, "Approved", "Denied")
       
-        # confusion matrices
+        # confusion matrix
         confMatrixFreq <- table(loanDf$deny, predictedLabels)
-        confMatrixFreq
-        confMatrixProp <- as.data.frame(prop.table(confMatrixFreq, 1))
   
-        return(list(loanDf,boundaryDf,confMatrixProp))
+        return(list(loanDf,boundaryDf,confMatrixFreq))
         
     })
     
-   
-    # now plotting again, but with geom_line(), and we create a plot function, 
+    # function for the plot - calling output of previous reactive "data"
     plotDiscFnc <- function() {
         ggplot(data = data()[[1]], 
                aes(x = solvency, y = PIratio, colour=deny)) + 
@@ -80,13 +72,14 @@ shinyServer(function(input, output, session) {
                                               "Approved" = "blue", "Denied" = "red"))
     }
     
-    
+    # plot and confusion matrix
     output$plot1 <- renderPlot({
-    #par(mar = c(5.1, 4.1, 0, 1))
-      plotDiscFnc()
+        par(mar = c(5.1, 4.1, 0, 1))
+        plotDiscFnc()
     }, height = 500, width=750)
   
     output$confmatrix<-renderTable({
-      head(data()[[1]])
+        data()[[3]]    
     })
+    
 })

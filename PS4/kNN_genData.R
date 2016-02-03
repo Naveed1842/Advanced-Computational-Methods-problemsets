@@ -44,11 +44,10 @@ output <- cbind(dataset, predLabels = results$predLabels, prob = results$prob)
 # write file
 write.csv(output, file="predictions.csv", row.names = FALSE)
 
-
 ########################## Plot Decision Boundaries ############################
 # create a grid covering all x1 and all x2 values - these define the graph boundaries
-X1 <- seq(min(dataset$x1), max(dataset$x1), by=0.2)
-X2 <- seq(min(dataset$x2), max(dataset$x2), by=0.2)
+X1 <- seq(min(dataset$x1)-1, max(dataset$x1)+1, by=0.2)
+X2 <- seq(min(dataset$x2)-1, max(dataset$x2)+1, by=0.2)
 grid <- expand.grid(x1=X1, x2=X2)
 
 # predict results for all points on grid
@@ -66,7 +65,10 @@ ggplot( data=grid, aes(x=x1, y=x2, z=predGridClasses) ) +
     geom_point(data=dataset, size=2, aes(x=x1, y=x2, z=y, colour=as.factor(dataset$y))) +
     scale_fill_manual("Class", values=c("blue", "red")) +
     scale_colour_manual("Training points", values=c("blue", "red")) +
+    ggtitle("Decision boundaries for kNN") +
     theme_bw() +
-    theme(text = element_text(family = "Helvetica"))
+    theme(text = element_text(family = "Helvetica")) +
+    theme(plot.title= element_text(size=20, face="bold"))
 
-ggsave("plot.pdf", scale = 1, width = 4, height = 4)
+
+ggsave("plot.pdf", scale = 1, width = 10, height = 10)

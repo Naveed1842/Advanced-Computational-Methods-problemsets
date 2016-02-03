@@ -1,8 +1,8 @@
-# define kNN function
+# defint kNN function
 # if type = "train", features = x-vars, labels = y-vars, memory = NULL
 # if type = "predict", features = new x-vars, labels = y-var (training), memory = x-var (training)
-
-kNN.base <- function(features, labels, memory = NULL, k = 1, p = 2, type='train') {
+kNN <- function(features, labels, memory=NULL, k = 1, p = 2, type = 'train', 
+                distanceMatrix=NULL) {
     
     # test the inputs
     library(plyr)
@@ -22,27 +22,33 @@ kNN.base <- function(features, labels, memory = NULL, k = 1, p = 2, type='train'
                         nrow(memory) == length(labels))
     }
     
-    # Compute the distance between each point and all others 
+    # define a couple of variables
     noObs <- nrow(features)
     noVars <- ncol(features)
     
-    # if we are making predictions on the test set based on the memory, 
-    # we compute distances between each test observation and observations
-    # in our memory
+    # Compute distances
+    if (is.null(distanceMatrix)) {
     if (type == "train") {
         distMatrix <- matrix(NA, noObs, noObs)
+        diag(distMatrix) <- 0
         for (obs in 1:noObs) {
-            
-            # getting the probe for the current observation
+        
+            # getting the probe for the current observation (from features)
             probe <- as.numeric(features[obs,])
-            probeExpanded <- matrix(probe, nrow = noObs, ncol = noVars, byrow = TRUE)
-            
-            # computing distances between the probe and exemplars in the
-            # training X
+            probeExpanded <- matrix(probe, nrow = noObs, ncol = noVars, byrow = TRUE) 
+        
+            # computing distances between the probe and exemplars in the training X
+            ### Only calculate half of matrix. Copy the other half (since symmetric for training data)
             if (p %in% c(1,2)) {
-                distMatrix[obs, ] <- (rowSums((abs(features -  probeExpanded))^p) )^(1/p)
+                if (obs>1) {
+                    distMatrix[obs, 1:(obs-1) ] <- distMatrix[1:(obs-1),obs]
+                }
+                if (obs<noObs) {
+                    distMatrix[obs, (obs+1):noObs ] <- (rowSums((abs(features[(obs+1):noObs, ] - 
+                                                                probeExpanded[(obs+1):noObs, ]))^p) )^(1/p)
+                }
             } else if (p==Inf) {
-                    distMatrix[obs, ] <- apply(abs(features - probeExpanded), 1, max)
+                distMatrix[obs, ] <- apply(abs(features - probeExpanded), 1, max)
             }  
         }
     } else if (type == "predict") {
@@ -52,9 +58,9 @@ kNN.base <- function(features, labels, memory = NULL, k = 1, p = 2, type='train'
             
             # getting the probe for the current observation
             probe <- as.numeric(features[obs,])
-            probeExpanded <- matrix(probe, nrow = noMemory, ncol = 2, byrow = TRUE)
+            probeExpanded <- matrix(probe, nrow = noMemory, ncol = noVars, byrow = TRUE)
             
-            # computing distances between the probe and exemplars in the memory
+            # computing distances between the probe and exemplars in the memory (distMatrix not symmetric)
             if (p %in% c(1,2)) {
                 distMatrix[obs, ] <- (rowSums((abs(memory - probeExpanded))^p) )^(1/p)
             } else if (p==Inf) {
@@ -62,17 +68,21 @@ kNN.base <- function(features, labels, memory = NULL, k = 1, p = 2, type='train'
             }  
         }
     }
+    } else {
+        distMatrix <- distanceMatrix
+    }
     # Sort the distances in increasing numerical order and pick the first 
     # neighbours for point 1 are in COLUMN 1
     neighbors <- apply(distMatrix, 1, order) 
     
-    # Compute and return the most frequent class in the k nearest neighbors - ties broken randomly
+    # Compute and return the most frequent class in the k nearest neighbors 
+    # - ties broken randomly
     predictedClasses <- rep(NA, noObs)
     prob <- rep(NA, noObs)
     for (obs in 1:noObs) {
         classCounts <- plyr::count(labels[neighbors[1:k, obs]])
         possiblePredClasses <- classCounts[classCounts$freq == max(classCounts$freq),1]
-        predictedClasses[obs] <- possiblePredClasses[sample(length(possiblePredClasses),1)] #for ties (which is possible with >2 classes)   
+        predictedClasses[obs] <- possiblePredClasses[sample(length(possiblePredClasses),1)]    
         prob[obs] <- max(classCounts$freq)/k
     }
     
@@ -81,17 +91,19 @@ kNN.base <- function(features, labels, memory = NULL, k = 1, p = 2, type='train'
         errorCount <- table(predictedClasses, labels)
         accuracy <- mean(predictedClasses == labels)
     } else if (type == "predict") {
-        errorCount <- NA
-        accuracy <- NA
+            errorCount <- NA
+            accuracy <- NA
     }
     
     # return the results
     return(list(predLabels = predictedClasses, 
                 prob = prob,
                 accuracy = accuracy,
-                errorCount = errorCount))
+                errorCount = errorCount, 
+                distMatrix = distMatrix))
 }
 
 
-# call function
-system.time(kNN(dataset[,1:2], dataset[,"y"], k=1, p=2))
+
+
+

@@ -21,6 +21,7 @@ kNN <- function(features, labels, memory=NULL, k = 1, p = 2, type = 'train',
                         ncol(memory) == ncol(features) & 
                         nrow(memory) == length(labels))
     }
+    if (!(is.data.frame(features)))     features <- as.data.frame(features)
     
     # define a couple of variables
     noObs <- nrow(features)

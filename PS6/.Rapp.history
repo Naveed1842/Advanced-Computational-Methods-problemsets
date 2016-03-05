@@ -1,0 +1,191 @@
+a <- available.packages()
+head(rownames(a)3)
+head(rownames(a),3)
+k <- available.packages()
+head(rownames(k),10)
+available.packages()
+install.packages("KernSmooth")
+library(KernSmooth)
+install.packages("swirl")
+library(swirl)
+swirl()
+5+7
+x <- 5+7
+x
+y <- x - 3
+y
+z <- c(1.1, 9, 3.14)
+?c
+z
+bye()
+x <- 1:4
+x
+y <- 2
+y
+x + y
+y <- 1:4
+y
+x + y
+x[x < 3] <- 0
+x
+read.table("hw1_data.csv")
+getwd()
+library(swirl)
+swirl()
+c("z",555,"z")
+c(z,555,z)
+z * 2 + 100
+my_sqrt <- sqrt(z-1)
+my_sqrt
+my_div <- z/my_sqrt
+my_div
+c(1,2,3,4) + c(0,10)
+c(1,2,3,4) + c(0,10,100)
+z * 2 + 1000
+my_div
+bye()
+swirl()
+library(swirl)
+swirl()
+getwd()
+ls()
+x <- 9
+ls()
+list.files()
+?list.files
+args(list.files())
+args(list.files)
+old.dir <- getwd()
+dir.creat("testdir")
+dir.create("testdir")
+setwd("testdir")
+file.create(mytest.R)
+file.create("mytest.R")
+list.files()
+file.exists("mytest.R")
+file.info("mytest.R")
+?file.rename
+file.rename("mytest.R", "mytest2.R")
+file.copy("mytest2.R","mytest3.R")
+file.path("mytest3.R")
+play()
+ls()
+list.files()
+nxt()
+file.path("folder1", "folder2")
+?file.path
+?dir.create
+play()
+list.files()
+ls()
+nxt()
+dir.create("testdir2", "testdir3", recurs = TRUE)
+dir.create(file.path("testdir2", "testdir3"), recursi = TRUE)
+play()
+getwd()
+ls()
+list.files()
+nxt()
+play()
+?unlink
+nxt()
+unlink("testdir2", rec=TRUE)
+setwd(old.dir)
+play()
+ls()
+list.files()
+nxt()
+unlink("testdir", rec=TRUE)
+1:20
+pi:10
+15:1
+?`:`
+seq(1,20)
+seq(0,10,by=0.5)
+seq(5,10,length=30)
+my_seq <- seq(5,10, length=30)
+length(my_seq)
+1:length(my_seq)
+seq(along.with = my_seq)
+play()
+?along.with
+??along.with
+?along.with()
+nxt()
+seq_qlong(my_seq)
+seq_along(my_seq)
+rep(0, times = 40)
+play()
+?seq
+nxt()
+rep(c(0,1,2), time = 10)
+rep(c(0,1,2), times = 10)
+rep(c(0,1,2), each = 10)
+bye()
+adaBoost <- function(formula, data, depth, noTrees, test=NULL) {#
+    # install and load required packages#
+    if (!require("assertthat")) install.packages("assertthat"); library(assertthat)#
+    if (!require("rpart")) install.packages("rpart"); library(rpart)#
+    if (!require("formula.tools")) install.packages("formula.tools"); library(formula.tools)#
+    #check inputs #
+    not_empty(data); not_empty(formula)#
+    assert_that(class(formula)=="formula") # possible problem#
+    assert_that(is.data.frame(data))#
+    is.count(depth); is.count(noTrees)#
+    # split out features#
+    ModelFrame  <- model.frame(formula,data)#
+    Terms       <- attr(ModelFrame, "terms")#
+    features    <- attr(Terms, "term.labels")#
+    X_data      <- subset(ModelFrame, select = features)#
+    # split out dependent variable#
+    Y.names     <- get.vars(lhs(formula))#
+    Y_data      <- factor(data[,Y.names])#
+    # convert dependent variable to a factor#
+    data[,Y.names] <- factor(data[,Y.names])#
+    # initialise the observation weights and an empty matrix and vector for G #
+    # and alpha#
+    N       <- nrow(data)#
+    w       <- rep(1/N, N)#
+    G       <- as.data.frame(matrix(NA, N, noTrees))#
+    alpha   <- rep(NA, noTrees) #
+    trees   <- list()#
+    for (m in 1:noTrees) { #
+        # train weak classifier Gm(x) with training data using initial weights#
+        trees[[m]] <- rpart(formula, #
+                            data, #
+                            weights = w, #
+                            control = rpart.control(maxdepth=depth))#
+        G[,m] <- predict(trees[[m]], newdata = X_data, type = "class")#
+        # compute error of the classifier#
+        err <- sum( w*(Y_data != G[,m]) ) / sum(w) #
+        # calculate alpha (classifier weight)#
+        alpha[m] <- log((1-err)/err)#
+        # update observation weights#
+        w <- w * exp( alpha[m] * (Y_data != G[,m]) )#
+    }#
+    if (is.null(test)) { #
+        # calculate final labels - training data#
+        G_final <- apply( G, 1, function(x) sign(alpha %*% as.numeric(x)) )#
+    } else {#
+        # predicting for test data#
+        predictions <- lapply(trees, function(x) predict(x, newdata = test, type = "class") )#
+        G_test <- data.frame( matrix(unlist(predictions), nrow=nrow(test)) )#
+        # calculate final labels - test data#
+        G_final <- apply( G, 1, function(x) sign(alpha %*% as.numeric(x)) )#
+    }#
+    return( list(predLabels = G_final) )#
+}
+getwd()
+setwd("~/Desktop/BGSE/AdvancedCompMethods/Advanced-Computational-Methods-problemsets/PS6")
+getwd()
+spambase <- read.csv("spambase.data", header=FALSE)#
+#
+# split into training (60%) and testing (40%) data #
+sampVec <- sample(1:nrow(spambase), size=0.6*nrow(spambase), replace=FALSE)#
+train   <- spambase[sampVec, ]#
+test    <- spambase[-sampVec, ]#
+#
+# convert classes 0 & 1 to -1 & 1. #
+train$V58 <- ifelse(train$V58==0,-1,1)#
+test$V58 <- ifelse(test$V58==0,-1,1)
+myPredTrain <- adaBoost(V58 ~ ., train, depth=5, noTrees=100)

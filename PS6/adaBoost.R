@@ -38,6 +38,7 @@ adaBoost <- function(formula, data, depth, noTrees, test=NULL) {
     
     for (m in 1:noTrees) { 
         cat('.')
+        environment (formula) <- environment ()
         # train weak classifier Gm(x) with training data using initial weights
         trees[[m]] <- rpart(formula, 
                             data, 
@@ -64,7 +65,7 @@ adaBoost <- function(formula, data, depth, noTrees, test=NULL) {
         G_test <- data.frame( matrix(unlist(predictions), nrow=nrow(test)) )
         
         # calculate final labels - test data
-        G_final <- apply( G, 1, function(x) sign(alpha %*% as.numeric(x)) )
+        G_final <- apply( G_test, 1, function(x) sign(alpha %*% as.numeric(x)) )
     }
     
     return( list(predLabels = G_final) )

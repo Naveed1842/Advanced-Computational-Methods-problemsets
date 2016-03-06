@@ -1,3 +1,10 @@
+# packages
+library(gbm)
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+library(gridExtra)
+
 # read in data from working directory
 spambase <- read.csv("spambase.data", header=FALSE)
 
@@ -10,7 +17,7 @@ test    <- spambase[-sampVec, ]
 train$V58 <- ifelse(train$V58==0,-1,1)
 test$V58 <- ifelse(test$V58==0,-1,1)
 
-# training error evolution
+# error evolution - adaBoost
 noIterations <- 400
 trainErr <- testErr <- rep(NA, noIterations)
 
@@ -19,25 +26,62 @@ for (i in 1:noIterations) {
     testErr[i]  <- mean( adaBoost(V58 ~ ., train, 5, i, test)$predLabels != test$V58 )
 }
 
+# combining errors in a data frame
+errors_adaBoost <- data.frame(Iterations = 1:noIterations,
+                         Train = trainErr, 
+                         Test = testErr) %>%
+    melt(id.vars = "Iterations")
+
+# plotting adaBoost results
+plotadaBoost <- ggplot(data = errors_adaBoost, 
+                       aes(x = Iterations, y = value, color = variable)) +
+                geom_line() +
+                scale_y_continuous( "Misclassification error", 
+                                      limits = c(0,0.5),
+                                      breaks = seq(0, 0.5, 0.1)) +
+                ggtitle("Error Evolution - adaBoost") +
+                theme_bw()
+
+########################## gmb package results ###############################
+# convert classes -1 & 1 to 0 & 1.
+train$V58 <- ifelse(train$V58==-1,0,1)
+test$V58 <- ifelse(test$V58==-1,0,1)
+
+# build model using gbm package
+boost <-gbm(formula = V58 ~ .,
+            distribution = "adaboost",
+            data = rbind(train, test),
+            n.trees = noIterations,
+            interaction.depth = 1,
+            shrinkage = 1,
+            bag.fraction = 1,
+            train.fraction = (2/12))
+
+(boostAcc <- mean((predict(boost, test) > 0) != test$V58))
+
+# error evolution - gbm
+trainErr_gbm <- testErr_gbm <- rep(NA, noIterations)
+for (i in 1:noIterations) {
+    trainErr_gbm[i] <- mean((predict(boost, train, n.trees = i) > 0) != train$V58)
+    testErr_gbm[i] <- mean((predict(boost, test, n.trees = i) > 0) != test$V58)
+}
+
+# combining errors in a data frame
+errors_gbm <- data.frame(Iterations = 1:noIterations,
+                     Train = trainErr_gbm, 
+                     Test = testErr_gbm) %>%
+    melt(id.vars = "Iterations")
+
+# plotting gbm results
+plotgbm <- ggplot(data = errors_gbm, aes(x = Iterations, y = value, color = variable)) +
+                geom_line() +
+                scale_y_continuous( "Misclassification error", 
+                                      limits = c(0,0.5),
+                                      breaks = seq(0, 0.5, 0.1)) +
+                ggtitle("Error Evolution - gbm package") +
+                theme_bw()
+
+# save both plots to pdf
 pdf("adaBoost.pdf")
-plot(x=noIterations, y=trainErr, type='n', 
-     main="Evolution of Errors - adaBoost",
-     xlab="Number of trees",
-     ylab="Misclassification error")
-lines(x=noIterations, y=trainErr, type='l', col='red')
-lines(x=noIterations, y=trainErr, type='l', col='blue')
-legend(noIterations*0.9, 0.9, c("Training error", "Test error"), lty=c(1,1), lwd=c(2.5,2.5), col=c("red", "blue"))
+grid.arrange(plotadaBoost, plotgbm)
 dev.off()
-
-
-
-
-
-
-# testing
-formula <- V58 ~ .
-data <- train
-depth <- 5
-noTrees <- 100
-myPredTrain <- adaBoost(V58 ~ ., train, depth=5, noTrees=100) 
-myPredTest  <- adaBoost(V58 ~ ., train, depth=5, noTrees=100, test) 
